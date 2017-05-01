@@ -4,6 +4,7 @@ import ETA.Core.CoreSyn
 import ETA.Types.Type
 import ETA.Types.TyCon
 import ETA.BasicTypes.Id
+import ETA.BasicTypes.SrcLoc     (srcSpanStartLine)
 import ETA.Prelude.PrimOp
 import ETA.StgSyn.StgSyn
 import ETA.BasicTypes.DataCon
@@ -40,6 +41,10 @@ cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr args <+> ppr ty) 
 cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
 -- TODO: Deal with ticks
+cgExpr (StgTick t@(SourceNote ss sn) e) = do
+  traceCg (str "StgTick" <+> ppr t)
+  emit $ emitLineInfo $ srcSpanStartLine ss
+  cgExpr e
 cgExpr (StgTick t e) = traceCg (str "StgTick" <+> ppr t) >> cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do

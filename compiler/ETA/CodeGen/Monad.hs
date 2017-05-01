@@ -72,6 +72,8 @@ import Control.Monad.Reader (MonadReader(..), ask, asks, local)
 import Control.Monad.IO.Class
 -- import qualified Data.ByteString.Lazy as B
 import Codec.JVM
+import Codec.JVM.ASM (addAttrsToMethodDef)
+import Codec.JVM.Attr (Attr(..))
 
 import ETA.CodeGen.Types
 import ETA.CodeGen.Closure
@@ -391,12 +393,15 @@ withMethod accessFlags name fts rt body = do
   emit vreturn
   clsName <- getClass
   newCode <- getMethodCode
+  mod <- getModule
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
-  defineMethod methodDef
+      methodDef' = addAttrsToMethodDef methodDef [ASourceFile mn]
+      mn = pack . moduleNameString . moduleName $  mod -- module name
+  defineMethod methodDef'
   setMethodCode oldCode
   setNextLocal oldNextLocal
   setNextLabel oldNextLabel
-  return methodDef
+  return methodDef'
 
 withSelfLoop :: SelfLoopInfo -> CodeGen a -> CodeGen a
 withSelfLoop selfLoopInfo =
