@@ -395,7 +395,7 @@ withMethod accessFlags name fts rt body = do
   newCode <- getMethodCode
   mod <- getModule
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
-      methodDef' = addAttrsToMethodDef methodDef [ASourceFile mn]
+      methodDef' = addAttrsToMethodDef [ASourceFile mn] methodDef 
       mn = pack . moduleNameString . moduleName $  mod -- module name
   defineMethod methodDef'
   setMethodCode oldCode

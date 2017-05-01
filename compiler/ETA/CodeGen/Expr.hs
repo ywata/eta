@@ -1,5 +1,7 @@
 module ETA.CodeGen.Expr where
 
+--import Debug.Trace (trace)
+
 import ETA.Core.CoreSyn
 import ETA.Types.Type
 import ETA.Types.TyCon
@@ -43,7 +45,7 @@ cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args)
 -- TODO: Deal with ticks
 cgExpr (StgTick t@(SourceNote ss sn) e) = do
   traceCg (str "StgTick" <+> ppr t)
-  emit $ emitLineInfo $ srcSpanStartLine ss
+  emit $ emitLineInfo $ srcSpanStartLine ss -- $ trace (show ss ++ " " ++ show sn) ss
   cgExpr e
 cgExpr (StgTick t e) = traceCg (str "StgTick" <+> ppr t) >> cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
