@@ -6,12 +6,14 @@ import ETA.Core.CoreSyn
 import ETA.Types.Type
 import ETA.Types.TyCon
 import ETA.BasicTypes.Id
-import ETA.BasicTypes.SrcLoc     (srcSpanStartLine)
+import ETA.BasicTypes.SrcLoc     (srcSpanFile, srcLocFile, srcSpanStartLine)
+
 import ETA.Prelude.PrimOp
 import ETA.StgSyn.StgSyn
 import ETA.BasicTypes.DataCon
 import ETA.Utils.Panic
 import ETA.Utils.Util (unzipWith)
+import ETA.Utils.FastString (unpackFS)
 import ETA.Util
 import ETA.Debug
 import ETA.CodeGen.Utils
@@ -43,10 +45,16 @@ cgExpr (StgOpApp op args ty) = traceCg (str "StgOpApp" <+> ppr args <+> ppr ty) 
 cgExpr (StgConApp con args) = traceCg (str "StgConApp" <+> ppr con <+> ppr args) >>
                               cgConApp con args
 -- TODO: Deal with ticks
-cgExpr (StgTick t@(SourceNote ss sn) e) = do
-  traceCg (str "StgTick" <+> ppr t)
-  emit $ emitLineInfo $ srcSpanStartLine ss -- $ trace (show ss ++ " " ++ show sn) ss
+cgExpr (StgTick t@(SourceNote ss _) e) = do
+  traceCg (str "StgTick-" <+> ppr t)
+  setSourceFile sn
+  emit $ emitLineInfo sn ln
   cgExpr e
+  where
+    sn = unpackFS . srcSpanFile $ ss -- always available
+    ln = srcSpanStartLine ss
+
+
 cgExpr (StgTick t e) = traceCg (str "StgTick" <+> ppr t) >> cgExpr e
 cgExpr (StgLit lit) = emitReturn [mkLocDirect False $ cgLit lit]
 cgExpr (StgLet binds expr) = do

@@ -48,7 +48,10 @@ module ETA.CodeGen.Monad
    forkLneBody,
    forkAlts,
    unimplemented,
-   getDynFlags)
+   getDynFlags,
+   setSourceFile,
+   getSourceFile
+   )
 where
 
 import ETA.Main.DynFlags
@@ -103,7 +106,8 @@ data CgState =
           -- Current method
           , cgCode           :: !Code
           , cgNextLocal      :: Int
-          , cgNextLabel      :: Int }
+          , cgNextLabel      :: Int
+          , cgSourceFile     :: String }
 
 instance Show CgState where
   show CgState {..} = "cgClassName: "         ++ show cgClassName      ++ "\n"
@@ -166,7 +170,8 @@ initCg dflags mod =
            , cgCompiledClosures = []
            , cgSuperClassName   = Nothing
            , cgNextLocal        = 0
-           , cgNextLabel        = 0 })
+           , cgNextLabel        = 0
+           , cgSourceFile       = "" })
   where className = moduleJavaClass mod
 
 emit :: Code -> CodeGen ()
@@ -324,6 +329,14 @@ setClosureClass clName = do
   let qClName = qualifiedName modClass clName
   modify $ \s -> s { cgClassName = qClName }
 
+
+getSourceFile :: CodeGen String
+getSourceFile = gets $ cgSourceFile
+
+setSourceFile :: String -> CodeGen ()
+setSourceFile sourceFile = do
+  modify $ \s -> s {cgSourceFile = sourceFile }
+
 -- NOTE: Changes made to class generation state are forgotten after
 --       the body is executed
 newClosureGeneric :: CodeGen a -> CodeGen (a, CgState)
@@ -393,10 +406,10 @@ withMethod accessFlags name fts rt body = do
   emit vreturn
   clsName <- getClass
   newCode <- getMethodCode
-  mod <- getModule
+  sn <- getSourceFile
   let methodDef = mkMethodDef clsName accessFlags name fts rt newCode
-      methodDef' = addAttrsToMethodDef [ASourceFile mn] methodDef 
-      mn = pack . moduleNameString . moduleName $  mod -- module name
+      methodDef' = addAttrsToMethodDef [ASourceFile sn'] methodDef 
+      sn' = pack sn
   defineMethod methodDef'
   setMethodCode oldCode
   setNextLocal oldNextLocal
